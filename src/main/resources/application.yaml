@@ -15,7 +15,7 @@ spring:
   application:
     name: CODE-GENERATOR
   config:
-    import: optional:file:.env_dev[.properties]
+    import: optional:file:.env[.properties]
 #    import: add you config here
 
   flyway:
