@@ -1,66 +1,51 @@
 package com.counter.service;
 
 import com.counter.entity.Code;
+import com.counter.mappers.CodeMapper;
 import com.counter.payload.CodeDto;
 import com.counter.repository.CodeRepository;
 import com.counter.utils.CodeGenerator;
-import jakarta.transaction.Transactional;
-import java.util.Comparator;
+import com.counter.utils.LetterNumberComparator;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class CodeServiceImpl implements CodeService {
 
   public static final String STARTING_CODE = "a0a0";
 
   private final CodeRepository codeRepository;
   private final CodeGenerator codeGenerator;
-
-  public CodeServiceImpl(CodeRepository codeRepository, CodeGenerator codeGenerator) {
-    this.codeRepository = codeRepository;
-    this.codeGenerator = codeGenerator;
-  }
-
-  @Override
-  public CodeDto generateCodeWithStartValue(CodeDto codeDto) {
-
-    Code code = mapToEntity(codeDto);
-
-    String newValue = codeGenerator.generateCode(code.getValue());
-    code.setValue(newValue);
-    Code newCode = codeRepository.save(code);
-
-    return mapToDto(newCode);
-  }
+  private final CodeMapper codeMapper;
 
   @Override
   public CodeDto generateNextCode() {
-    Code lustCode = codeRepository.findAll().stream().max(Comparator.comparing(Code::getId))
-        .orElse(null);
+    log.info("Code generating started ... ");
+    List<Code> codes = new ArrayList<>(codeRepository.findAll());
 
-    if (lustCode == null) {
-      Code firstCode = codeRepository.save(Code.builder()
-          .value(STARTING_CODE)
-          .build());
-      return mapToDto(firstCode);
+    Code codeMaxFromDb = codes.stream().max(new LetterNumberComparator()).orElse(null);
+
+    Code savedCode;
+    if (codeMaxFromDb == null) {
+      savedCode = codeRepository.save(Code.builder()
+          .value(STARTING_CODE).build());
+      log.info("Generated code: {}", savedCode.getValue());
+      return codeMapper.toDto(savedCode);
     }
-    String newCode = codeGenerator.generateCode(lustCode.getValue());
-    Code savedCode = codeRepository.save(Code.builder()
+
+    String newCode = codeGenerator.generateCode(codeMaxFromDb.getValue());
+    savedCode = codeRepository.save(Code.builder()
         .value(newCode).build());
-    return mapToDto(savedCode);
+    log.info("Generated code: {}", savedCode.getValue());
+    codeRepository.deleteById(codeMaxFromDb.getId());
+
+    return codeMapper.toDto(savedCode);
   }
 
-  private Code mapToEntity(CodeDto codeDto) {
-    return Code.builder()
-        .id(codeDto.getId())
-        .value(codeDto.getValue())
-        .build();
-  }
 
-  private CodeDto mapToDto(Code code) {
-    return CodeDto.builder()
-        .id(code.getId())
-        .value(code.getValue())
-        .build();
-  }
 }

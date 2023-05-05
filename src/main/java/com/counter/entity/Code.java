@@ -27,7 +27,7 @@ public class Code {
   @Column(name = "id")
   private Long id;
 
-  @Column(name = "value", nullable = false)
+  @Column(name = "value", nullable = false, unique = true)
   private String value;
 
 }

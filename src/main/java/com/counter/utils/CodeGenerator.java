@@ -15,8 +15,8 @@ public class CodeGenerator {
   public static final char MIN_LETTER = 'a';
   public static final String INCREMENT = "a0";
 
-  public String generateCode(String str) {
-    int leftToIncrement = 0;
+  public synchronized String generateCode(String str) {
+    var leftToIncrement = false;
     boolean incremented = false;
     if (str == null) {
       return null;
@@ -26,45 +26,44 @@ public class CodeGenerator {
     }
     char[] charArray = str.toCharArray();
     int i = charArray.length - 1;
-    while (!incremented && i >= 0) {
 
+    while (!incremented && i >= 0) {
       if (Character.isDigit(charArray[i])) {
-        if (leftToIncrement != 0 && charArray[i] != MAX_NUM) {
+        if (leftToIncrement  && charArray[i] != MAX_NUM) {
           charArray[i]++;
-          leftToIncrement--;
+          leftToIncrement=false;
           incremented = true;
         } else if (charArray[i] < MAX_NUM && charArray[i] != MIN_NUM) {
           charArray[i]++;
           incremented = true;
         } else if (charArray[i] == MAX_NUM) {
           charArray[i] = MIN_NUM;
-          leftToIncrement++;
-        } else if (leftToIncrement == 0 && charArray[i] == MIN_NUM) {
+          leftToIncrement=true;
+        } else if (!leftToIncrement && charArray[i] == MIN_NUM) {
           charArray[i]++;
           incremented = true;
         }
       }
 
-      if (Character.isLetter(charArray[i])) {
-        if (leftToIncrement != 0) {
+      if (Character.isLetter(charArray[i]) && leftToIncrement) {
           if (charArray[i] != MAX_LETTER) {
             charArray[i]++;
-            leftToIncrement--;
+            leftToIncrement = false;
             incremented = true;
           } else {
             charArray[i] = MIN_LETTER;
-            leftToIncrement++;
+            leftToIncrement = true;
           }
-        }
       }
       i--;
     }
-    if (leftToIncrement != 0) {
-      return new String(charArray) + INCREMENT;
+
+    if (leftToIncrement   && (charArray[0] == MIN_LETTER && charArray[1] == MIN_NUM)) {
+      return INCREMENT + new String(charArray);
     }
+
     return new String(charArray);
   }
-
 
   public boolean isValidCode(String code) {
     Pattern pattern = Pattern.compile(CODE_PATTERN);
